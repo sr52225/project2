@@ -98,7 +98,7 @@ ggpairs(clust_dat, aes(color=cluster))
 
 ```
 
-We can see that the optimal k value is 3 from the for loop, and a reported average silhouette of 0.71 
+From the PAM analysis, I found that the optimal k value is 3 as seen from the for loop as well as the ggplot, with an average silhouette width of 0.7160523, just about over the 0.71 mark signaling a strong structure found. 
     
     
 ### Dimensionality Reduction with PCA
@@ -343,7 +343,6 @@ py$airline_py %>% arrange(desc(incidents_00_14)) %>%
 ```
 
 Discussion
-
 
 
 ### Concluding Remarks
