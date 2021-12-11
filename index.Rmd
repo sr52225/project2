@@ -50,13 +50,21 @@ class_diag <- function(score, truth, positive, cutoff=.5){
 
 ### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information
+Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information.
+
+For this project, I am excited to work with the airline safety dataset in the fivethirtyeight package. This dataset tackles the serious question: Should Travelers Avoid Flying Airlines That Have Had Crashes in the Past? This dataset includes the variables: airline, a binary variable for if regional subsidiaries are included are not for the specific airline, the available seat kilometers flown every week (number of seats available x number of kilometers flown), the total number of incidents for the years 1985-1999 & 2000-2014, the total number of fatal accidents for the years 1985-1999 & 2000-2014, and the total number of fatalities for the years 1985-1999 & 2000-2014, totaling 9 variables across the dataset. I decided to drop the columns for the years 1985-1999 to make my data more current, but also to help with analysis. 
+
+I found this data by downloading fivethirtyeight, loading the package, and pulling up datasets from the list to see what interested me the most while fitting the requirements for this project. Out of the 6 variables, there is one categorical explanatory variable (airlines), one binary variable (incl_reg_subsidiaries), and the rest are numeric explanatory variables. In total, there are 56 observations, for 56 different airlines. So, there is one observation per group for my categorical variable, and one observation per group for my binary variable. This dataset popped out to me and is interesting because I find that it addresses an important topic, and one that anyone would find to be valuable and meaningful information. For my first project, I selected a topic and dataset that only would interest a select group of people (basketball fans), so I really wanted to make sure that I chose a topic that is more broad and applies to almost everyone. We have all flown before, and this is a fear that will always be there even if a level of comfort has been achieved, so I wanted to look into this dataset more and address the question that really caught my attention: Should travelers avoid flying airlines that have had crashed in the past? 
 
 ```{R}
 library(tidyverse)
-# read your datasets in here, e.g., with read_csv()
+library(fivethirtyeight)
+data()
 
-# if your dataset needs tidying, do so here
+airline_safety1 <- airline_safety %>% select(-incidents_85_99, -fatal_accidents_85_99, -fatalities_85_99)
+airline_safety1
+
+library(tidyverse)
 
 # any other code here
 ```
@@ -66,15 +74,79 @@ library(tidyverse)
 ```{R}
 library(cluster)
 # clustering code here
+# Partioning around Medoids (PAM) is a robust alternative to k-means
+# - better to use this one in practice, # using actual data points
+
+pam_dat<-airline_safety1%>%dplyr::select(incl_reg_subsidiaries, avail_seat_km_per_week, incidents_00_14, fatal_accidents_00_14, fatalities_00_14)
+sil_width<-vector()
+for(i in 2:10){  
+  pam_fit <- pam(pam_dat, k = i)  
+  sil_width[i] <- pam_fit$silinfo$avg.width  
+}
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+
+set.seed(322)
+pam1 <- pam_dat %>% pam(k=3)
+clust_dat <- pam_dat %>% mutate(cluster=as.factor(pam1$clustering))
+
+pam1$silinfo$avg.width # Average Silhouette Width # Strong structure: 0.71 - 1.0
+# Interpreting Average Silhouette Width
+plot(pam1,which=2)
+
+library(GGally)
+ggpairs(clust_dat, aes(color=cluster))
+
 ```
 
-Discussion of clustering here
+We can see that the optimal k value is 3 from the for loop, and a reported average silhouette of 0.71 
     
     
 ### Dimensionality Reduction with PCA
 
 ```{R}
 # PCA code here
+
+pca_airline <- airline_safety1 
+airline_nums <- pca_airline %>% select_if(is.numeric) %>% scale
+rownames(airline_nums)<-pca_airline$Name
+airline_pca<-princomp(airline_nums)
+names(airline_pca)
+
+summary(airline_pca, loadings=T)
+
+eigval <-  airline_pca$sdev^2 #square to convert SDs to eigenvalues
+varprop=round(eigval/sum(eigval), 2) #proportion of var explained by each PC
+
+ggplot() + geom_bar(aes(y=varprop, x=1:4), stat="identity") + xlab("") + geom_path(aes(y=varprop, x=1:4)) + 
+  geom_text(aes(x=1:4, y=varprop, label=round(varprop, 2)), vjust=1, col="white", size=5) + 
+  scale_y_continuous(breaks=seq(0, .6, .2), labels = scales::percent) + 
+  scale_x_continuous(breaks=1:10) # Pick PCs until cumulative proportion of variance is > 80%
+
+round(cumsum(eigval)/sum(eigval), 2) # cumulative proportion of variance # keep the first 2
+
+#save the first two PCs in a dataframe
+airlinedf <-  data.frame(PC1=airline_pca$scores[, 1], PC2=airline_pca$scores[, 2])
+
+#plot them!
+ggplot(airlinedf, aes(PC1, PC2)) + geom_point()
+
+## which pokemon are high/lo on PC1 and PC2? 
+#highest on PC1
+airline_pca$scores %>% as.data.frame %>% top_n(3, Comp.1) 
+
+#lowest on PC1
+airline_pca$scores %>% as.data.frame %>% top_n(3, wt=desc(Comp.1))
+
+#highest on PC2
+airline_pca$scores %>% as.data.frame %>% top_n(3, wt=Comp.2) 
+
+#lowest on PC2
+airline_pca$scores %>% as.data.frame %>% top_n(3, wt=desc(Comp.2)) 
+
+## Make a nice byplot quickly:
+library(factoextra)
+fviz_pca_biplot(airline_pca)
+
 ```
 
 Discussions of PCA here. 
@@ -83,10 +155,54 @@ Discussions of PCA here.
 
 ```{R}
 # linear classifier code here
+
+logistic_fit <- glm(incl_reg_subsidiaries=="TRUE" ~ avail_seat_km_per_week + incidents_00_14 +
+                    fatal_accidents_00_14 + fatalities_00_14, data=airline_safety1, family="binomial")
+
+prob_reg <- predict(logistic_fit, newdata=airline_safety1, type="response")
+
+class_diag(prob_reg, airline_safety1$incl_reg_subsidiaries, positive="TRUE", cutoff=0.5)
+
+# cor matrix
+cormat <- airline_safety1 %>% select_if(is.numeric) %>% cor(use="pair")
+cormat
+
 ```
 
 ```{R}
 # cross-validation of linear classifier here
+
+set.seed(322)
+k=10
+
+data<-sample_frac(airline_safety1) #randomly order rows
+folds <- rep(1:k, length.out=nrow(data)) #create folds
+
+diags<-NULL
+
+i=1
+for(i in 1:k){
+# create training and test sets
+train<-data[folds!=i,] 
+test<-data[folds==i,] 
+truth<-test$incl_reg_subsidiaries
+
+fit <- glm(incl_reg_subsidiaries=="TRUE" ~ avail_seat_km_per_week + incidents_00_14 +
+                    fatal_accidents_00_14 + fatalities_00_14, data=train, family="binomial") ### SPECIFY THE LOGISTIC REGRESSION MODEL FIT TO THE TRAINING SET HERE
+
+# test model
+probs <- predict(fit, newdata=test, type="response") ### GET PREDICTIONS FROM THE TRAINED MODEL ON THE TEST SET HERE
+
+# get performance metrics for each fold
+diags<-rbind(diags,class_diag(probs,truth,positive="TRUE")) }
+
+# average performance metrics across all folds
+summarize_all(diags,mean)
+
+# Cor matrix
+cormat <- airline_safety1 %>% select_if(is.numeric) %>% cor(use="pair")
+cormat
+
 ```
 
 Discussion here
@@ -96,10 +212,52 @@ Discussion here
 ```{R}
 library(caret)
 # non-parametric classifier code here
+
+knn_fit <- knn3(factor(incl_reg_subsidiaries=="TRUE", 
+                       levels=c("TRUE","FALSE")) ~ avail_seat_km_per_week + incidents_00_14 +
+                    fatal_accidents_00_14 + fatalities_00_14, data=airline_safety1)
+
+#your code here
+
+prob_knn <- predict(knn_fit,airline_safety1)[,1]
+
+# prob_knn
+
+class_diag(prob_knn, airline_safety1$incl_reg_subsidiaries, positive="TRUE")
+
 ```
 
 ```{R}
 # cross-validation of np classifier here
+
+set.seed(322)
+k=10
+
+data<-sample_frac(airline_safety1) #randomly order rows
+folds <- rep(1:k, length.out=nrow(data)) #create folds
+
+diags<-NULL
+
+i=1
+for(i in 1:k){
+# create training and test sets
+train<-data[folds!=i,] 
+test<-data[folds==i,] 
+truth<-test$incl_reg_subsidiaries
+
+# train model
+fit <- knn3(factor(incl_reg_subsidiaries=="TRUE",levels=c("TRUE","FALSE")) ~ avail_seat_km_per_week +
+              incidents_00_14 + fatal_accidents_00_14 + fatalities_00_14, data=train) ### SPECIFY THE KNN MODEL FIT TO THE TRAINING SET HERE
+
+# test model
+probs <- predict(fit, newdata=test)[,1] ### GET PREDICTIONS FROM THE TRAINED MODEL ON THE TEST SET HERE
+
+# get performance metrics for each fold
+diags<-rbind(diags,class_diag(probs,truth, positive="TRUE")) }
+
+#average performance metrics across all folds
+summarize_all(diags,mean)
+
 ```
 
 Discussion
@@ -109,10 +267,41 @@ Discussion
 
 ```{R}
 # regression model code here
+
+fit<-lm(fatalities_00_14 ~ incidents_00_14 + fatal_accidents_00_14,data=airline_safety1) 
+yhat<-predict(fit) #predicted incidents_00_14
+
+mean((airline_safety1$fatalities_00_14-yhat)^2) #mean squared error (MSE)
+
 ```
 
 ```{R}
 # cross-validation of regression model here
+
+set.seed(1234)
+k=5 #choose number of folds
+
+data<-airline_safety1[sample(nrow(airline_safety1)),] #randomly order rows
+folds<-cut(seq(1:nrow(airline_safety1)),breaks=k,labels=F) #create folds
+
+diags<-NULL
+for(i in 1:k){
+  train<-data[folds!=i,]
+  test<-data[folds==i,]
+  
+  ## Fit linear regression model to training set
+  fit<-lm(fatalities_00_14 ~ incidents_00_14 + fatal_accidents_00_14,data=train)
+  
+  ## Get predictions/y-hats on test set (fold i)
+  yhat<-predict(fit,newdata=test)
+  
+  ## Compute prediction error  (MSE) for fold i
+  diags<-mean((test$fatalities_00_14-yhat)^2) 
+}
+
+mean(diags) ## get average MSE across all folds (much higher error)!
+
+
 ```
 
 Discussion
@@ -121,13 +310,41 @@ Discussion
 
 ```{R}
 library(reticulate)
+use_python("/usr/bin/python3")
+
 ```
 
 ```{python}
 # python code here
+
+#print(r.airline_safety1)
+airline_py = r.airline_safety1
+
+# Max number of fatalaties
+print(r.airline_safety1.fatalities_00_14.max())
+
+# Top 5 airlines with the most fatalities from the years 2000 - 2014
+print(r.airline_safety1.filter(["airline", "fatalities_00_14"]).sort_values(by="fatalities_00_14", 
+ascending=False).head(5))
+ 
+```
+
+```{R}
+
+# min 10: incidents with airline name
+py$airline_py %>% arrange(incidents_00_14) %>% 
+  select(airline, incidents_00_14) %>% head(10)
+
+# max 10: incidents with airline name
+py$airline_py %>% arrange(desc(incidents_00_14)) %>% 
+  select(airline, incidents_00_14) %>% head(10)
+
+
 ```
 
 Discussion
+
+
 
 ### Concluding Remarks
 
