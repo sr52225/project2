@@ -149,7 +149,7 @@ fviz_pca_biplot(airline_pca)
 
 ```
 
-Discussions of PCA here. 
+After graphing the cumulative proportion of variances and also listing them, I chose to keep the first two components, as 0.62+0.25=0.87 eclipsed the 0.80 mark. 
 
 ###  Linear Classifier
 
@@ -205,7 +205,7 @@ cormat
 
 ```
 
-Discussion here
+For the Linear Classifier (Logistic Regression Model), I attempted to predict the "TRUE" values for the binary variable: incl_reg_subsidiaries, which refers to if an airline included regional subsidiaries. For the predictor variables, I included the rest of the numeric variables in the dataset. Attempting to generate predicted score/probability for my original observations, the AUC score came out to be 0.8344. When performing 10-fold cross validation, I noticed a substantial decrease in the AUC score. It dropped approximately by 10%, to 0.73139, which shows signs of overfitting. It isn't a crazy drop in performance, but still substantial enough to be able to say that when predicting on the original dataset, the model fit close to quirks with its boundaries made and thus, overfit with new data. 
 
 ### Non-Parametric Classifier
 
@@ -259,8 +259,7 @@ diags<-rbind(diags,class_diag(probs,truth, positive="TRUE")) }
 summarize_all(diags,mean)
 
 ```
-
-Discussion
+For the Non-Parametric Classifier (K-Nearest-Neighbor), I attempted to predict the "TRUE" values for the binary variable: incl_reg_subsidiaries, again using the same predictor variables used for the Logistic Regression Model. Attempting to generate predicted score/probability for my original observations, the AUC score came out to be 0.8727, greater than the performance of the Logistic Regression Model by about 4%. However, When performing 10-fold cross validation, I noticed a pretty big drop in the AUC score. The score dropped by approximately 21%, to 0.66125, which definitely shows signs of overfitting. This is a big enough drop to be able to say that there is overfitting going on, and that the boundaries made when predicting on the original data, did not translate well over to new data. When comparing the two models, I would have to go with the linear classifier because it performed better than the non-parametric classifier by about 7% on new data, which is the performance that reflects the overall efficiency and robustness, much more than predicted scores/probabilities on original data. That being said, the KNN model did not perform *that* much better, but nonetheless a decent amount greater than the GLM model, producing a score greater than the 70% mark which is satisfactory. 
 
 
 ### Regression/Numeric Prediction
