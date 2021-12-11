@@ -1833,7 +1833,7 @@ for (i in 1:k) {
 
 mean(diags)  ## get average MSE across all folds (much higher error)!</code></pre>
 <pre><code>## [1] 20856.34</code></pre>
-<p>Discussion</p>
+<p>Fitting the Linear Regression Model to the entire dataset, I chose to predict the numeric variable: fatalities_00_14 which assesses the number of fatalities from 2000 to 2014, from two other numeric predictor variables: incidents_00_14 and fatal_accidents_00_14. These three variables really make up the bulk of my dataset, and 3 of the 4 numeric variables, the one other being the available seat km per week amount. There was such a huge contrast between this variable to the 3 chosen numeric variables for this model, that I decided to leave it out in order to produce cleaner and more understandable results for myself. After fitting the model, the reported MSE score for the dataset was 5937.666. This shows how close the regression line is to the data points, so the distances from the points to the line or errors amounted to the square root of 5937.666, which equals about 77.056. When performing 5-fold cross-validation, the reported average MSE score was 20856.34. This definitely shows that the model overfit on the overall dataset, as the MSE score increased by a huge amount from 5937.666 to 20856.34, equaling to about 3.5 times the original score.</p>
 </div>
 <div id="python" class="section level3">
 <h3>Python</h3>
