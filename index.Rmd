@@ -77,7 +77,7 @@ library(cluster)
 # Partioning around Medoids (PAM) is a robust alternative to k-means
 # - better to use this one in practice, # using actual data points
 
-pam_dat<-airline_safety1%>%dplyr::select(incl_reg_subsidiaries, avail_seat_km_per_week, incidents_00_14, fatal_accidents_00_14, fatalities_00_14)
+pam_dat<-airline_safety1%>%dplyr::select(avail_seat_km_per_week, incidents_00_14, fatal_accidents_00_14, fatalities_00_14)
 sil_width<-vector()
 for(i in 2:10){  
   pam_fit <- pam(pam_dat, k = i)  
@@ -87,7 +87,12 @@ ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1
 
 set.seed(322)
 pam1 <- pam_dat %>% pam(k=3)
+pam1
 clust_dat <- pam_dat %>% mutate(cluster=as.factor(pam1$clustering))
+
+## gg-plot
+pamclust <- clust_dat %>% mutate(cluster=as.factor(pam1$clustering))
+pamclust %>% ggplot(aes(avail_seat_km_per_week, incidents_00_14, color = cluster)) + geom_point()
 
 pam1$silinfo$avg.width # Average Silhouette Width # Strong structure: 0.71 - 1.0
 # Interpreting Average Silhouette Width
@@ -98,7 +103,7 @@ ggpairs(clust_dat, aes(color=cluster))
 
 ```
 
-From the PAM analysis, I found that the optimal k value is 3 as seen from the for loop as well as the ggplot, with an average silhouette width of 0.7160523, just about over the 0.71 mark signaling a strong structure found. 
+For the PAM clustering model, all 4 of my numeric-only variables were used. From the PAM analysis, I found that the optimal k value is 3 as seen from the for loop as well as the ggplot, with an average silhouette width of 0.7160523, just about over the 0.71 mark signaling a strong structure found. Thus, selecting 3 of my data points to be representative of the cluster centers as the central observations that minimizes the sum of distances the most. From running pam1, we can see that for cluster 1, the 21st observation of the dataset is the middlemost of the cluster, while the 38th observation is for cluster 2, and the 20th observation being the middlemost for cluster 3, with the observations for each variable listed to the right. We can see clear differences between the mediods in particular for the values of the variables: incidents_00_14 and fatalities_00_14. From running the gg-plot to visualize the clusters, we can see that they were separated pretty well with distinct boundaries if we're accounting for just two of the variables. 
     
     
 ### Dimensionality Reduction with PCA
@@ -115,6 +120,7 @@ names(airline_pca)
 summary(airline_pca, loadings=T)
 
 eigval <-  airline_pca$sdev^2 #square to convert SDs to eigenvalues
+eigval # eigenvalues
 varprop=round(eigval/sum(eigval), 2) #proportion of var explained by each PC
 
 ggplot() + geom_bar(aes(y=varprop, x=1:4), stat="identity") + xlab("") + geom_path(aes(y=varprop, x=1:4)) + 
@@ -130,7 +136,7 @@ airlinedf <-  data.frame(PC1=airline_pca$scores[, 1], PC2=airline_pca$scores[, 2
 #plot them!
 ggplot(airlinedf, aes(PC1, PC2)) + geom_point()
 
-## which pokemon are high/lo on PC1 and PC2? 
+## which are high/lo on PC1 and PC2? 
 #highest on PC1
 airline_pca$scores %>% as.data.frame %>% top_n(3, Comp.1) 
 
@@ -149,7 +155,8 @@ fviz_pca_biplot(airline_pca)
 
 ```
 
-After graphing the cumulative proportion of variances and also listing them, I chose to keep the first two components, as 0.62+0.25=0.87 eclipsed the 0.80 mark. 
+For the PCA dimensionality reduction analysis, using the numeric variables only, we can see that the 4 variables were converted to 2 uncorrelated variables (PCs). After graphing the cumulative proportion of variances and also listing them, I chose to keep the first two components, as 0.62+0.25=0.87 eclipsed the 0.80 mark. Thus, the dataset was reduced in this process that still keeps most of the information necessary. From the plot, we can see that the direction of the axis to the left with an upward slope, is the first principal component with the greatest variation. We can then see that the perpendicular direction to the right is the second principal component with the next greatest variance. From the summary command, we can see that PC1 alone captured about 62% of all the variance across all 4 of the variables used. PC2 then captured about 25% of all the variance across the variables, so when adding these two values together, this equals 0.87. From the summary, and knowing our PCA's (1+2), we can see that PCA1 has a decently high average for all 4 variables, averaging out to about 0.5 for each of them. Thus, the high scores for PCA1 represent the airlines on average, high positive values for each variable: the highest for Incidents_00_14, third highest for the available_seat_km_per_week variable but still pretty high, and the second highest for each of the two other numeric variables. The low scores for PCA1 representing the opposite, lower values on all 4 variables. We can see that PCA2 has a high value for the avail_seat_km_per_week variable and incidents_00_14 as well. Thus, we can conclude that the high scores for PCA2 tend to have high values for these two variables and very low values for fatal_accidents_00_14 and fatalities_00_14, while the low scores tend to have the opposite values for fatal_accidents_00_14 and fatalities_00_14. It's interesting to see with the PCA analysis, that we can understand how airlines score on each component given their observations for each numeric variable used for the model.
+
 
 ###  Linear Classifier
 
