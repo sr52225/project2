@@ -348,13 +348,7 @@ py$airline_py %>% arrange(desc(incidents_00_14)) %>%
 
 ```
 
-For the python code, after loading reticulate, I wanted to find some summary statistics using dplyr emulating tools. So, in the python code chunk using .r to load my dataset, I found the max number of incidents from 2000 to 2014, and the top 5 airlines with the most fatalities from 2000 to 2014. Additionally, I set the variable airline_py equal to the dataset: r.airline_safety, so I could run code on the dataset in a separate r code chunk. Subsequently, I used dpylr tools on the python dataset I loaded with py$, and ran code we learned throughout the semester to find the 10 minimum and maximum number of incidents with the airline name. The reason why I chose 10 was because the minimum value is 0, and there were 9 instances with this value. 
-
-
-### Concluding Remarks
-
-Include concluding remarks here, if any
-
+For the python code, after loading reticulate, I wanted to find some summary statistics using dplyr emulating tools. So, in the python code chunk using .r to load my dataset, I found the max number of incidents from 2000 to 2014, and the top 5 airlines with the most fatalities from 2000 to 2014. Additionally, I set the variable airline_py equal to the dataset: r.airline_safety, so I could run code on the dataset in a separate r code chunk. Subsequently, I used dpylr tools on the python dataset I loaded with py$, and ran code we learned throughout the semester to find the 10 minimum and maximum number of incidents with the airline name. The reason why I chose 10 was because the minimum value is 0, and there were 9 instances with this value.
 
 
 
